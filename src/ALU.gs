@@ -47,3 +47,51 @@ function INC(value) {
 function DEC(value) {
   return SUB(value, 1);
 }
+/*** Operación lógica AND.*/
+function AND(a, b) {
+  const result = (a & b) & 0xFF;
+
+  setFlag("CF", 0);
+  updateArithmeticFlags(result);
+
+  return result;
+}
+
+/*** Operación lógica OR.*/
+function OR(a, b) {
+  const result = (a | b) & 0xFF;
+
+  setFlag("CF", 0);
+  updateArithmeticFlags(result);
+
+  return result;
+}
+
+/*** Operación lógica XOR.*/
+function XOR(a, b) {
+  const result = (a ^ b) & 0xFF;
+
+  setFlag("CF", 0);
+  updateArithmeticFlags(result);
+
+  return result;
+}
+
+/*** Operación lógica NOT.*/
+function NOT(a) {
+  const result = (~a) & 0xFF;
+
+  setFlag("CF", 0);
+  updateArithmeticFlags(result);
+
+  return result;
+}
+
+/*** Compara dos valores sin guardar el resultado.*/
+function CMP(a, b) {
+  const fullResult = a - b;
+  const result = fullResult & 0xFF;
+
+  setFlag("CF", fullResult < 0 ? 1 : 0);
+  updateArithmeticFlags(result);
+}
