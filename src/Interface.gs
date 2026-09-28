@@ -21,3 +21,20 @@ function updateCPUInterface() {
     sheet.getRange(i + 3, 2).setNumberFormat("@").setValue(hexValue);
   }
 }
+function updateFlagsInterface() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet()
+    .getSheetByName("CPU");
+
+  if (!sheet) {
+    throw new Error("No existe la hoja CPU");
+  }
+
+  const flags = ["ZF", "CF", "SF"];
+
+  for (let i = 0; i < flags.length; i++) {
+    const flag = flags[i];
+
+    sheet.getRange(i + 3, 4).setValue(flag);
+    sheet.getRange(i + 3, 5).setValue(getFlag(flag));
+  }
+}
