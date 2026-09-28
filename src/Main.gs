@@ -1,9 +1,8 @@
-function testMemory() {
-  Write(128, 10);
-  Write(129, 25);
-  Write(130, 255);
+function testALU() {
+  resetCPU();
 
-  Logger.log(Read(128));
-  Logger.log(Read(129));
-  Logger.log(Read(130));
+  Logger.log("ADD 10 + 5= " + ADD(10, 5));
+  Logger.log("SUB 10 - 5 = " + SUB(10,5));
+  Logger.log("INC 10 = " + INC(10));
+  Logger.log("DEC 10 = " + DEC(10));
 }
