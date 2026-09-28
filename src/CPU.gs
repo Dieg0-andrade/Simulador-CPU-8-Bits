@@ -4,7 +4,11 @@ const CPU = {
   MAR: 0,
   MDR: 0,
   AX: 0,
-  BX: 0
+  BX: 0,
+
+  ZF: 0,
+  CF: 0,
+  SF: 0
 };
 
 /**
@@ -17,6 +21,9 @@ function resetCPU() {
   CPU.MDR = 0;
   CPU.AX = 0;
   CPU.BX = 0;
+  CPU.ZF = 0;
+CPU.CF = 0;
+CPU.SF = 0;
 }
 
 /**
@@ -43,4 +50,23 @@ function setRegister(registerName, value) {
   }
 
   CPU[registerName] = value;
+}
+function getFlag(flagName) {
+  if (!["ZF", "CF", "SF"].includes(flagName)) {
+    throw new Error("Bandera inválida: " + flagName);
+  }
+
+  return CPU[flagName];
+}
+
+function setFlag(flagName, value) {
+  if (!["ZF", "CF", "SF"].includes(flagName)) {
+    throw new Error("Bandera inválida: " + flagName);
+  }
+
+  if (value !== 0 && value !== 1) {
+    throw new Error("Una bandera solo puede valer 0 o 1");
+  }
+
+  CPU[flagName] = value;
 }
