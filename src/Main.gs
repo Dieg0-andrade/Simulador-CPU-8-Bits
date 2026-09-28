@@ -1,15 +1,11 @@
-function testLogicalALU() {
+function testDecoder() {
 
-  resetCPU();
+  const decoded = decodeInstruction("LOAD AX, [80h]");
 
-  Logger.log("AND 12, 10 = " + AND(12, 10));
-  Logger.log("OR 12, 10 = " + OR(12, 10));
-  Logger.log("XOR 12, 10 = " + XOR(12, 10));
-  Logger.log("NOT 10 = " + NOT(10));
+  Logger.log("Opcode = " + decoded.opcode);
+  Logger.log("Operando 1 = " + decoded.operands[0]);
+  Logger.log("Tipo 1 = " + decoded.operandTypes[0]);
 
-  CMP(10, 5);
-  Logger.log("CMP 17, 8");
-  Logger.log("ZF = " + getFlag("ZF"));
-  Logger.log("CF = " + getFlag("CF"));
-  Logger.log("SF = " + getFlag("SF"));
+  Logger.log("Operando 2 = " + decoded.operands[1]);
+  Logger.log("Tipo 2 = " + decoded.operandTypes[1]);
 }
