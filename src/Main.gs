@@ -127,3 +127,23 @@ function testControlFlow() {
 
   Logger.log("CPU detenida = " + execution.halted);
 }
+function testStep() {
+
+  resetSimulator();
+
+  Logger.log("--- PRUEBA STEP ---");
+
+  Logger.log(stepCPU());
+  Logger.log(stepCPU());
+  Logger.log(stepCPU());
+  Logger.log(stepCPU());
+  Logger.log(stepCPU());
+}
+function testRun() {
+
+  resetSimulator();
+
+  Logger.log("--- PRUEBA RUN ---");
+
+  runCPU();
+}
