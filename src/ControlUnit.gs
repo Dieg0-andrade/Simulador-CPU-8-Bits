@@ -83,3 +83,21 @@ function fetch() {
 
   return getRegister("IR");
 }
+function decode(instruction) {
+
+  Logger.log("DECODE: Analizando instrucción " + instruction);
+
+  const decoded = decodeInstruction(instruction);
+
+  Logger.log("DECODE: Opcode = " + decoded.opcode);
+
+  for (let i = 0; i < decoded.operands.length; i++) {
+    Logger.log(
+      "DECODE: Operando " + (i + 1) +
+      " = " + decoded.operands[i] +
+      " (" + decoded.operandTypes[i] + ")"
+    );
+  }
+
+  return decoded;
+}
