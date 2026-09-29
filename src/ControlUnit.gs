@@ -60,3 +60,26 @@ function detectOperandType(operand) {
 
   return "UNKNOWN";
 }
+function fetch() {
+
+  // 1. PC -> MAR
+  const pc = getRegister("PC");
+  setRegister("MAR", pc);
+
+  // 2. RAM[MAR] -> MDR
+  const memoryValue = Read(getRegister("MAR"));
+  setRegister("MDR", memoryValue);
+
+  // 3. MDR -> IR
+  setRegister("IR", getRegister("MDR"));
+
+  // 4. PC = PC + 1
+  setRegister("PC", pc + 1);
+
+  Logger.log("FETCH: PC -> MAR");
+  Logger.log("FETCH: RAM[MAR] -> MDR");
+  Logger.log("FETCH: MDR -> IR");
+  Logger.log("FETCH: PC incrementado");
+
+  return getRegister("IR");
+}
