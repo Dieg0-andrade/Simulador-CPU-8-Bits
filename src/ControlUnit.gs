@@ -59,7 +59,10 @@ function detectOperandType(operand) {
   if (/^\d+$/.test(operand)) {
     return "IMMEDIATE";
   }
-
+  // Dirección para saltos: 10H, 20H, FFH...
+  if (/^[0-9A-F]{1,2}H$/.test(operand)) {
+  return "ADDRESS";
+}
   return "UNKNOWN";
 }
 
@@ -124,6 +127,16 @@ function parseMemoryAddress(operand) {
   return parseInt(hexValue, 16);
 }
 
+function parseJumpAddress(operand) {
+
+  if (!/^[0-9A-F]{1,2}H$/.test(operand)) {
+    throw new Error("Dirección de salto inválida: " + operand);
+  }
+
+  const hexValue = operand.replace("H", "");
+
+  return parseInt(hexValue, 16);
+}
 
 function execute(decoded) {
 
@@ -234,6 +247,75 @@ function execute(decoded) {
         result: null,
         destination: null,
         memoryAddress: null
+      };
+        case "JMP":
+
+      const jumpAddress = parseJumpAddress(operands[0]);
+
+      setRegister("PC", jumpAddress);
+
+      Logger.log("EXECUTE: Salto incondicional a " + operands[0]);
+
+      return {
+        result: null,
+        destination: null,
+        memoryAddress: null
+      };
+
+
+    case "JZ":
+
+      const jzAddress = parseJumpAddress(operands[0]);
+
+      if (getFlag("ZF") === 1) {
+
+        setRegister("PC", jzAddress);
+
+        Logger.log("EXECUTE: JZ realizado, PC = " + jzAddress);
+
+      } else {
+
+        Logger.log("EXECUTE: JZ no realizado porque ZF = 0");
+      }
+
+      return {
+        result: null,
+        destination: null,
+        memoryAddress: null
+      };
+
+
+    case "JNZ":
+
+      const jnzAddress = parseJumpAddress(operands[0]);
+
+      if (getFlag("ZF") === 0) {
+
+        setRegister("PC", jnzAddress);
+
+        Logger.log("EXECUTE: JNZ realizado, PC = " + jnzAddress);
+
+      } else {
+
+        Logger.log("EXECUTE: JNZ no realizado porque ZF = 1");
+      }
+
+      return {
+        result: null,
+        destination: null,
+        memoryAddress: null
+      };
+
+
+    case "HLT":
+
+      Logger.log("EXECUTE: CPU detenida");
+
+      return {
+        result: null,
+        destination: null,
+        memoryAddress: null,
+        halted: true
       };
 
 
