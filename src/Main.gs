@@ -1,19 +1,14 @@
-function testFetch() {
+function testDecode() {
 
   resetCPU();
 
-  // Guardamos un valor en la primera posición de RAM
-  Write(0, 10);
+  const instruction = "MOV AX, 25";
 
-  Logger.log("--- ANTES DEL FETCH ---");
-  Logger.log("PC = " + getRegister("PC"));
-  Logger.log("IR = " + getRegister("IR"));
+  Logger.log("--- ANTES DEL DECODE ---");
 
-  fetch();
+  const decoded = decode(instruction);
 
-  Logger.log("--- DESPUES DEL FETCH ---");
-  Logger.log("PC = " + getRegister("PC"));
-  Logger.log("MAR = " + getRegister("MAR"));
-  Logger.log("MDR = " + getRegister("MDR"));
-  Logger.log("IR = " + getRegister("IR"));
+  Logger.log("--- DESPUES DEL DECODE ---");
+  Logger.log("Opcode identificado = " + decoded.opcode);
+  Logger.log("Cantidad de operandos = " + decoded.operands.length);
 }
