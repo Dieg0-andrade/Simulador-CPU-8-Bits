@@ -1,14 +1,21 @@
-function testDecode() {
+function testExecuteStore() {
 
   resetCPU();
 
-  const instruction = "MOV AX, 25";
+  setRegister("AX", 10);
+  setRegister("BX", 5);
 
-  Logger.log("--- ANTES DEL DECODE ---");
+  Logger.log("--- ESTADO INICIAL ---");
+  Logger.log("AX = " + getRegister("AX"));
+  Logger.log("BX = " + getRegister("BX"));
 
-  const decoded = decode(instruction);
+  const decoded = decode("SUB AX, BX");
 
-  Logger.log("--- DESPUES DEL DECODE ---");
-  Logger.log("Opcode identificado = " + decoded.opcode);
-  Logger.log("Cantidad de operandos = " + decoded.operands.length);
+  const executionResult = execute(decoded);
+
+  store(executionResult);
+
+  Logger.log("--- ESTADO FINAL ---");
+  Logger.log("AX = " + getRegister("AX"));
+  Logger.log("BX = " + getRegister("BX"));
 }
