@@ -61,12 +61,26 @@ const phases = [
   "STORE"
 ];
 
+const demoProgram = {
+  0: "MOV AX, 0",
+  1: "MOV BX, 5",
+  2: "INC AX",
+  3: "CMP AX, BX",
+  4: "JNZ 02H",
+  5: "STORE [80H], AX",
+  6: "HLT"
+};
+
 
 function updateCPUStatus(phase, status, instruction, operation) {
 
   const sheet = SpreadsheetApp
     .getActiveSpreadsheet()
     .getSheetByName("CPU");
+
+  if (!sheet) {
+    throw new Error("No existe la hoja CPU");
+  }
 
   if (phase !== null) {
     sheet.getRange("E8").setValue(phase);
@@ -84,11 +98,17 @@ function updateCPUStatus(phase, status, instruction, operation) {
     sheet.getRange("E11").setValue(operation);
   }
 }
+
+
 function highlightPhase(phase) {
 
   const sheet = SpreadsheetApp
     .getActiveSpreadsheet()
     .getSheetByName("CPU");
+
+  if (!sheet) {
+    throw new Error("No existe la hoja CPU");
+  }
 
   const cell = sheet.getRange("E8");
 
@@ -124,6 +144,10 @@ function addLog(phase, operation) {
     .getActiveSpreadsheet()
     .getSheetByName("CPU");
 
+  if (!sheet) {
+    throw new Error("No existe la hoja CPU");
+  }
+
   let row = 24;
 
   while (sheet.getRange(row, 3).getValue() !== "") {
@@ -136,7 +160,6 @@ function addLog(phase, operation) {
   sheet.getRange(row, 3).setNumberFormat("HH:mm:ss");
 
   sheet.getRange(row, 4).setValue(phase);
-
   sheet.getRange(row, 5).setValue(operation);
 }
 
@@ -151,39 +174,162 @@ function stepCPU() {
 
   const phase = phases[currentPhase];
 
-  Logger.log("STEP: Fase actual = " + phase);
+  let instruction =
+    properties.getProperty("currentInstruction") || "";
 
   let operation = "";
+
+  Logger.log("STEP: Fase actual = " + phase);
 
   switch (phase) {
 
     case "FETCH":
-      operation = "PC -> MAR -> MDR -> IR";
+
+      const pc = getRegister("PC");
+
+      instruction = demoProgram[pc];
+
+      if (instruction === undefined) {
+
+        updateCPUStatus(
+          "FETCH",
+          "HALTED",
+          "",
+          "No hay más instrucciones"
+        );
+
+        throw new Error(
+          "No existe instrucción en la dirección " + pc
+        );
+      }
+
+      setRegister("MAR", pc);
+      setRegister("MDR", pc);
+      setRegister("IR", pc);
+
+      setRegister("PC", pc + 1);
+
+      properties.setProperty(
+        "currentInstruction",
+        instruction
+      );
+
+      operation = "PC -> MAR -> MDR -> IR; PC++";
+
       break;
+
 
     case "DECODE":
-      operation = "Decodificando instrucción";
+
+      if (instruction === "") {
+        throw new Error(
+          "No existe instrucción para decodificar"
+        );
+      }
+
+      const decoded = decode(instruction);
+
+      properties.setProperty(
+        "decodedInstruction",
+        JSON.stringify(decoded)
+      );
+
+      operation = "Decodificando: " + instruction;
+
       break;
+
 
     case "EXECUTE":
-      operation = "Ejecutando operación";
+
+      const decodedText =
+        properties.getProperty("decodedInstruction");
+
+      if (!decodedText) {
+        throw new Error(
+          "No existe una instrucción decodificada"
+        );
+      }
+
+      const decodedInstruction =
+        JSON.parse(decodedText);
+
+      const execution =
+        execute(decodedInstruction);
+
+      properties.setProperty(
+        "executionResult",
+        JSON.stringify(execution)
+      );
+
+      operation = "Ejecutando: " + instruction;
+
       break;
 
+
     case "STORE":
-      operation = "Almacenando resultado";
+
+      const executionText =
+        properties.getProperty("executionResult");
+
+      if (!executionText) {
+        throw new Error(
+          "No existe resultado de ejecución"
+        );
+      }
+
+      const executionResult =
+        JSON.parse(executionText);
+
+      store(executionResult);
+
+      operation = "STORE completado: " + instruction;
+
+      if (executionResult.halted === true) {
+
+        updateCPUStatus(
+          "STORE",
+          "HALTED",
+          instruction,
+          "CPU detenida por HLT"
+        );
+
+        highlightPhase("STORE");
+
+        addLog(
+          "STORE",
+          "CPU detenida por HLT"
+        );
+
+        updateCPUInterface();
+        updateFlagsInterface();
+
+        properties.setProperty(
+          "currentPhase",
+          "0"
+        );
+
+        Logger.log("STEP: CPU detenida por HLT");
+
+        return "HLT";
+      }
+
       break;
   }
 
+
   updateCPUStatus(
-  phase,
-  "RUNNING",
-  null,
-  operation
-);
+    phase,
+    "RUNNING",
+    instruction,
+    operation
+  );
 
-highlightPhase(phase);
+  highlightPhase(phase);
 
-addLog(phase, operation);
+  addLog(phase, operation);
+
+  updateCPUInterface();
+  updateFlagsInterface();
 
   currentPhase++;
 
@@ -202,34 +348,86 @@ addLog(phase, operation);
 
 function runCPU() {
 
-  cpuRunning = true;
-  cpuPaused = false;
+  const properties = PropertiesService.getScriptProperties();
+
+  properties.setProperty(
+    "runState",
+    "RUNNING"
+  );
 
   Logger.log("RUN: Ejecución automática iniciada");
 
-  for (let i = 0; i < 20; i++) {
+  updateCPUStatus(
+    null,
+    "RUNNING",
+    null,
+    null
+  );
 
-    if (cpuPaused) {
+  for (let i = 0; i < 100; i++) {
+
+    const runState =
+      properties.getProperty("runState");
+
+    if (runState === "PAUSED") {
+
       Logger.log("RUN: Ejecución pausada");
-      break;
+
+      updateCPUStatus(
+        null,
+        "PAUSED",
+        null,
+        "Ejecución pausada"
+      );
+
+      return;
     }
 
     const phase = stepCPU();
 
     Logger.log("RUN: " + phase);
 
+    if (phase === "HLT") {
+
+      properties.setProperty(
+        "runState",
+        "HALTED"
+      );
+
+      Logger.log("RUN: CPU detenida por HLT");
+
+      return;
+    }
+
     Utilities.sleep(500);
   }
 
-  cpuRunning = false;
+  properties.setProperty(
+    "runState",
+    "STOPPED"
+  );
 
-  Logger.log("RUN: Ejecución finalizada");
+  Logger.log(
+    "RUN: Límite de ejecución alcanzado"
+  );
 }
 
 
 function pauseCPU() {
 
-  cpuPaused = true;
+  const properties = PropertiesService.getScriptProperties();
+
+  properties.setProperty(
+    "runState",
+    "PAUSED"
+  );
+
+  updateCPUStatus(
+    null,
+    "PAUSED",
+    null,
+    "Ejecución pausada"
+  );
 
   Logger.log("PAUSE: Ejecución pausada");
 }
@@ -242,13 +440,36 @@ function resetSimulator() {
   cpuRunning = false;
   cpuPaused = false;
 
-  PropertiesService
-    .getScriptProperties()
-    .setProperty("currentPhase", "0");
+  const properties = PropertiesService.getScriptProperties();
+
+  properties.setProperty(
+    "currentPhase",
+    "0"
+  );
+  properties.setProperty(
+  "runState",
+  "STOPPED"
+);
+
+  properties.deleteProperty(
+    "currentInstruction"
+  );
+
+  properties.deleteProperty(
+    "decodedInstruction"
+  );
+
+  properties.deleteProperty(
+    "executionResult"
+  );
 
   const sheet = SpreadsheetApp
     .getActiveSpreadsheet()
     .getSheetByName("CPU");
+
+  if (!sheet) {
+    throw new Error("No existe la hoja CPU");
+  }
 
   sheet.getRange("C24:E100").clearContent();
 
@@ -258,11 +479,12 @@ function resetSimulator() {
     "",
     ""
   );
+
   const phaseCell = sheet.getRange("E8");
 
-phaseCell
-  .setBackground("#FFFFFF")
-  .setFontWeight("normal");
+  phaseCell
+    .setBackground("#FFFFFF")
+    .setFontWeight("normal");
 
   updateCPUInterface();
   updateFlagsInterface();
@@ -275,7 +497,7 @@ function loadProgram() {
 
   resetSimulator();
 
-  Logger.log("LOAD PROGRAM: Programa cargado");
+  Logger.log("LOAD PROGRAM: Programa demo cargado");
 
   SpreadsheetApp
     .getActiveSpreadsheet()
