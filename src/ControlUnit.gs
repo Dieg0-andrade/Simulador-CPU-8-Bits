@@ -36,11 +36,13 @@ function decodeInstruction(instruction) {
     : [];
 
   return {
-  opcode: opcode,
-  operands: operands,
-  operandTypes: operands.map(op => detectOperandType(op))
-};
+    opcode: opcode,
+    operands: operands,
+    operandTypes: operands.map(op => detectOperandType(op))
+  };
 }
+
+
 function detectOperandType(operand) {
 
   // Registro
@@ -48,7 +50,7 @@ function detectOperandType(operand) {
     return "REGISTER";
   }
 
-  // Dirección de memoria: [80h], [A0h], etc.
+  // Dirección de memoria: [80H], [A0H], etc.
   if (/^\[[0-9A-F]{1,2}H\]$/.test(operand)) {
     return "MEMORY";
   }
@@ -60,6 +62,8 @@ function detectOperandType(operand) {
 
   return "UNKNOWN";
 }
+
+
 function fetch() {
 
   // 1. PC -> MAR
@@ -83,6 +87,8 @@ function fetch() {
 
   return getRegister("IR");
 }
+
+
 function decode(instruction) {
 
   Logger.log("DECODE: Analizando instrucción " + instruction);
@@ -101,6 +107,24 @@ function decode(instruction) {
 
   return decoded;
 }
+
+
+// Convierte una dirección como [80H] a decimal
+function parseMemoryAddress(operand) {
+
+  if (!/^\[[0-9A-F]{1,2}H\]$/.test(operand)) {
+    throw new Error("Dirección de memoria inválida: " + operand);
+  }
+
+  const hexValue = operand
+    .replace("[", "")
+    .replace("]", "")
+    .replace("H", "");
+
+  return parseInt(hexValue, 16);
+}
+
+
 function execute(decoded) {
 
   Logger.log("EXECUTE: Ejecutando " + decoded.opcode);
@@ -110,38 +134,111 @@ function execute(decoded) {
 
   let result = null;
   let destination = null;
+  let memoryAddress = null;
 
   switch (opcode) {
 
+    case "MOV":
+
+      destination = operands[0];
+
+      if (decoded.operandTypes[1] === "IMMEDIATE") {
+        result = parseInt(operands[1]);
+      }
+
+      else if (decoded.operandTypes[1] === "REGISTER") {
+        result = getRegister(operands[1]);
+      }
+
+      else {
+        throw new Error("Operando inválido para MOV");
+      }
+
+      break;
+
+
+    case "LOAD":
+
+      destination = operands[0];
+
+      memoryAddress = parseMemoryAddress(operands[1]);
+
+      result = Read(memoryAddress);
+
+      break;
+
+
+    case "STORE":
+
+      memoryAddress = parseMemoryAddress(operands[0]);
+
+      result = getRegister(operands[1]);
+
+      destination = "MEMORY";
+
+      break;
+
+
     case "ADD":
+
       destination = operands[0];
 
       result = ADD(
         getRegister(operands[0]),
         getRegister(operands[1])
       );
+
       break;
 
+
     case "SUB":
+
       destination = operands[0];
 
       result = SUB(
         getRegister(operands[0]),
         getRegister(operands[1])
       );
+
       break;
+
 
     case "INC":
+
       destination = operands[0];
+
       result = INC(getRegister(operands[0]));
+
       break;
+
 
     case "DEC":
+
       destination = operands[0];
+
       result = DEC(getRegister(operands[0]));
+
       break;
 
+
+    case "CMP":
+
+      CMP(
+        getRegister(operands[0]),
+        getRegister(operands[1])
+      );
+
+      Logger.log("EXECUTE: Comparación realizada");
+
+      return {
+        result: null,
+        destination: null,
+        memoryAddress: null
+      };
+
+
     default:
+
       throw new Error(
         "Opcode todavía no implementado en Execute: " + opcode
       );
@@ -151,9 +248,12 @@ function execute(decoded) {
 
   return {
     result: result,
-    destination: destination
+    destination: destination,
+    memoryAddress: memoryAddress
   };
 }
+
+
 function store(executionResult) {
 
   if (executionResult.destination === null) {
@@ -161,6 +261,26 @@ function store(executionResult) {
     return;
   }
 
+  // Guardar en memoria
+  if (executionResult.destination === "MEMORY") {
+
+    Write(
+      executionResult.memoryAddress,
+      executionResult.result
+    );
+
+    Logger.log(
+      "STORE: " +
+      executionResult.result +
+      " almacenado en RAM[" +
+      executionResult.memoryAddress +
+      "]"
+    );
+
+    return;
+  }
+
+  // Guardar en registro
   setRegister(
     executionResult.destination,
     executionResult.result
