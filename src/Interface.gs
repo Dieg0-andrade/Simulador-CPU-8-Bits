@@ -38,3 +38,92 @@ function updateFlagsInterface() {
     sheet.getRange(i + 3, 5).setValue(getFlag(flag));
   }
 }
+let cpuRunning = false;
+let cpuPaused = false;
+let currentPhase = 0;
+
+const phases = [
+  "FETCH",
+  "DECODE",
+  "EXECUTE",
+  "STORE"
+];
+
+
+function stepCPU() {
+
+  const phase = phases[currentPhase];
+
+  Logger.log("STEP: Fase actual = " + phase);
+
+  currentPhase++;
+
+  if (currentPhase >= phases.length) {
+    currentPhase = 0;
+  }
+
+  return phase;
+}
+
+
+function runCPU() {
+
+  cpuRunning = true;
+  cpuPaused = false;
+
+  Logger.log("RUN: Ejecución automática iniciada");
+
+  for (let i = 0; i < 20; i++) {
+
+    if (cpuPaused) {
+      Logger.log("RUN: Ejecución pausada");
+      break;
+    }
+
+    const phase = stepCPU();
+
+    Logger.log("RUN: " + phase);
+
+    Utilities.sleep(500);
+  }
+
+  cpuRunning = false;
+
+  Logger.log("RUN: Ejecución finalizada");
+}
+
+
+function pauseCPU() {
+
+  cpuPaused = true;
+
+  Logger.log("PAUSE: Ejecución pausada");
+}
+
+
+function resetSimulator() {
+
+  resetCPU();
+
+  currentPhase = 0;
+  cpuRunning = false;
+  cpuPaused = false;
+
+  Logger.log("RESET: Simulador reiniciado");
+}
+
+
+function loadProgram() {
+
+  resetSimulator();
+
+  Logger.log("LOAD PROGRAM: Programa cargado");
+
+  SpreadsheetApp
+    .getActiveSpreadsheet()
+    .toast(
+      "Programa cargado correctamente",
+      "CPU Simulator",
+      3
+    );
+}
