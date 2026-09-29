@@ -1,11 +1,19 @@
-function testDecoder() {
+function testFetch() {
 
-  const decoded = decodeInstruction("LOAD AX, [80h]");
+  resetCPU();
 
-  Logger.log("Opcode = " + decoded.opcode);
-  Logger.log("Operando 1 = " + decoded.operands[0]);
-  Logger.log("Tipo 1 = " + decoded.operandTypes[0]);
+  // Guardamos un valor en la primera posición de RAM
+  Write(0, 10);
 
-  Logger.log("Operando 2 = " + decoded.operands[1]);
-  Logger.log("Tipo 2 = " + decoded.operandTypes[1]);
+  Logger.log("--- ANTES DEL FETCH ---");
+  Logger.log("PC = " + getRegister("PC"));
+  Logger.log("IR = " + getRegister("IR"));
+
+  fetch();
+
+  Logger.log("--- DESPUES DEL FETCH ---");
+  Logger.log("PC = " + getRegister("PC"));
+  Logger.log("MAR = " + getRegister("MAR"));
+  Logger.log("MDR = " + getRegister("MDR"));
+  Logger.log("IR = " + getRegister("IR"));
 }
