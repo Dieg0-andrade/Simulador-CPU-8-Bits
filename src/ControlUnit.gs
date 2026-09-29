@@ -101,3 +101,75 @@ function decode(instruction) {
 
   return decoded;
 }
+function execute(decoded) {
+
+  Logger.log("EXECUTE: Ejecutando " + decoded.opcode);
+
+  const opcode = decoded.opcode;
+  const operands = decoded.operands;
+
+  let result = null;
+  let destination = null;
+
+  switch (opcode) {
+
+    case "ADD":
+      destination = operands[0];
+
+      result = ADD(
+        getRegister(operands[0]),
+        getRegister(operands[1])
+      );
+      break;
+
+    case "SUB":
+      destination = operands[0];
+
+      result = SUB(
+        getRegister(operands[0]),
+        getRegister(operands[1])
+      );
+      break;
+
+    case "INC":
+      destination = operands[0];
+      result = INC(getRegister(operands[0]));
+      break;
+
+    case "DEC":
+      destination = operands[0];
+      result = DEC(getRegister(operands[0]));
+      break;
+
+    default:
+      throw new Error(
+        "Opcode todavía no implementado en Execute: " + opcode
+      );
+  }
+
+  Logger.log("EXECUTE: Resultado = " + result);
+
+  return {
+    result: result,
+    destination: destination
+  };
+}
+function store(executionResult) {
+
+  if (executionResult.destination === null) {
+    Logger.log("STORE: No hay resultado para almacenar");
+    return;
+  }
+
+  setRegister(
+    executionResult.destination,
+    executionResult.result
+  );
+
+  Logger.log(
+    "STORE: " +
+    executionResult.result +
+    " almacenado en " +
+    executionResult.destination
+  );
+}
