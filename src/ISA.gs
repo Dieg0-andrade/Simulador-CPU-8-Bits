@@ -82,6 +82,24 @@ const ISA_TABLE = [
   },
 
   {
+    opcode: 0x30,
+    mnemonic: "ADD",
+    form: "AX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "Suma un inmediato a AX"
+  },
+
+  {
+    opcode: 0x31,
+    mnemonic: "ADD",
+    form: "BX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "Suma un inmediato a BX"
+  },
+
+  {
     opcode: 0x32,
     mnemonic: "ADD",
     form: "AX_BX",
@@ -100,6 +118,24 @@ const ISA_TABLE = [
   },
 
   {
+    opcode: 0x34,
+    mnemonic: "SUB",
+    form: "AX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "Resta un inmediato a AX"
+  },
+
+  {
+    opcode: 0x35,
+    mnemonic: "SUB",
+    form: "BX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "Resta un inmediato a BX"
+  },
+
+  {
     opcode: 0x36,
     mnemonic: "SUB",
     form: "AX_BX",
@@ -115,6 +151,24 @@ const ISA_TABLE = [
     bytes: 1,
     flags: "ZF CF SF",
     description: "BX = BX - AX"
+  },
+
+  {
+    opcode: 0x40,
+    mnemonic: "CMP",
+    form: "AX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "Compara AX con un inmediato"
+  },
+
+  {
+    opcode: 0x41,
+    mnemonic: "CMP",
+    form: "BX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "Compara BX con un inmediato"
   },
 
   {
@@ -196,6 +250,132 @@ const ISA_TABLE = [
     bytes: 2,
     flags: "-",
     description: "Salta si ZF es 0"
+  },
+
+  {
+    opcode: 0x70,
+    mnemonic: "AND",
+    form: "AX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "AND entre AX y un inmediato"
+  },
+
+  {
+    opcode: 0x71,
+    mnemonic: "AND",
+    form: "BX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "AND entre BX y un inmediato"
+  },
+
+  {
+    opcode: 0x72,
+    mnemonic: "AND",
+    form: "AX_BX",
+    bytes: 1,
+    flags: "ZF CF SF",
+    description: "AX = AX AND BX"
+  },
+
+  {
+    opcode: 0x73,
+    mnemonic: "AND",
+    form: "BX_AX",
+    bytes: 1,
+    flags: "ZF CF SF",
+    description: "BX = BX AND AX"
+  },
+
+  {
+    opcode: 0x74,
+    mnemonic: "OR",
+    form: "AX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "OR entre AX y un inmediato"
+  },
+
+  {
+    opcode: 0x75,
+    mnemonic: "OR",
+    form: "BX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "OR entre BX y un inmediato"
+  },
+
+  {
+    opcode: 0x76,
+    mnemonic: "OR",
+    form: "AX_BX",
+    bytes: 1,
+    flags: "ZF CF SF",
+    description: "AX = AX OR BX"
+  },
+
+  {
+    opcode: 0x77,
+    mnemonic: "OR",
+    form: "BX_AX",
+    bytes: 1,
+    flags: "ZF CF SF",
+    description: "BX = BX OR AX"
+  },
+
+  {
+    opcode: 0x78,
+    mnemonic: "XOR",
+    form: "AX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "XOR entre AX y un inmediato"
+  },
+
+  {
+    opcode: 0x79,
+    mnemonic: "XOR",
+    form: "BX_IMM",
+    bytes: 2,
+    flags: "ZF CF SF",
+    description: "XOR entre BX y un inmediato"
+  },
+
+  {
+    opcode: 0x7A,
+    mnemonic: "XOR",
+    form: "AX_BX",
+    bytes: 1,
+    flags: "ZF CF SF",
+    description: "AX = AX XOR BX"
+  },
+
+  {
+    opcode: 0x7B,
+    mnemonic: "XOR",
+    form: "BX_AX",
+    bytes: 1,
+    flags: "ZF CF SF",
+    description: "BX = BX XOR AX"
+  },
+
+  {
+    opcode: 0x7C,
+    mnemonic: "NOT",
+    form: "AX",
+    bytes: 1,
+    flags: "ZF CF SF",
+    description: "Invierte los bits de AX"
+  },
+
+  {
+    opcode: 0x7D,
+    mnemonic: "NOT",
+    form: "BX",
+    bytes: 1,
+    flags: "ZF CF SF",
+    description: "Invierte los bits de BX"
   }
 
 ];
@@ -212,13 +392,15 @@ function formatHexByte(value) {
 
 function getInstructionDefinitionByOpcode(opcode) {
 
-  const definition = ISA_TABLE.find(
-    item => item.opcode === opcode
-  );
+  const definition =
+    ISA_TABLE.find(
+      item => item.opcode === opcode
+    );
 
   if (!definition) {
     throw new Error(
-      "Opcode inválido 0x" + formatHexByte(opcode)
+      "Opcode inválido 0x" +
+      formatHexByte(opcode)
     );
   }
 
@@ -234,24 +416,31 @@ function getInstructionDefinitionByOpcodeOrNull(opcode) {
 }
 
 
-function getInstructionDefinitionByForm(mnemonic, form) {
+function getInstructionDefinitionByForm(
+  mnemonic,
+  form
+) {
 
-  const definition = ISA_TABLE.find(
+  return ISA_TABLE.find(
     item =>
       item.mnemonic === mnemonic &&
       item.form === form
-  );
-
-  return definition || null;
+  ) || null;
 }
 
 
-function decodeInstructionBytes(opcode, operandByte) {
+function decodeInstructionBytes(
+  opcode,
+  operandByte
+) {
 
   const definition =
-    getInstructionDefinitionByOpcode(opcode);
+    getInstructionDefinitionByOpcode(
+      opcode
+    );
 
-  const mnemonic = definition.mnemonic;
+  const mnemonic =
+    definition.mnemonic;
 
   let operands = [];
   let operandTypes = [];
@@ -347,7 +536,9 @@ function decodeInstructionBytes(opcode, operandByte) {
 
       operands = [
         "AX",
-        "[" + formatHexByte(operandByte) + "H]"
+        "[" +
+        formatHexByte(operandByte) +
+        "H]"
       ];
 
       operandTypes = [
@@ -368,7 +559,9 @@ function decodeInstructionBytes(opcode, operandByte) {
 
       operands = [
         "BX",
-        "[" + formatHexByte(operandByte) + "H]"
+        "[" +
+        formatHexByte(operandByte) +
+        "H]"
       ];
 
       operandTypes = [
@@ -388,7 +581,9 @@ function decodeInstructionBytes(opcode, operandByte) {
     case "MEM_AX":
 
       operands = [
-        "[" + formatHexByte(operandByte) + "H]",
+        "[" +
+        formatHexByte(operandByte) +
+        "H]",
         "AX"
       ];
 
@@ -409,7 +604,9 @@ function decodeInstructionBytes(opcode, operandByte) {
     case "MEM_BX":
 
       operands = [
-        "[" + formatHexByte(operandByte) + "H]",
+        "[" +
+        formatHexByte(operandByte) +
+        "H]",
         "BX"
       ];
 
@@ -430,7 +627,6 @@ function decodeInstructionBytes(opcode, operandByte) {
     case "AX":
 
       operands = ["AX"];
-
       operandTypes = ["REGISTER"];
 
       text =
@@ -443,7 +639,6 @@ function decodeInstructionBytes(opcode, operandByte) {
     case "BX":
 
       operands = ["BX"];
-
       operandTypes = ["REGISTER"];
 
       text =
@@ -456,7 +651,8 @@ function decodeInstructionBytes(opcode, operandByte) {
     case "ADDR":
 
       operands = [
-        formatHexByte(operandByte) + "H"
+        formatHexByte(operandByte) +
+        "H"
       ];
 
       operandTypes = [
@@ -482,19 +678,12 @@ function decodeInstructionBytes(opcode, operandByte) {
 
 
   return {
-
     opcode: mnemonic,
-
     operands: operands,
-
     operandTypes: operandTypes,
-
     opcodeByte: opcode,
-
     operandByte: operandByte,
-
     bytes: definition.bytes,
-
     text: text
   };
 }
