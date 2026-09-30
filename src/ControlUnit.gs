@@ -27,7 +27,6 @@ function decodeInstruction(instruction) {
 
 
   const validOpcodes = [
-
     "MOV",
     "LOAD",
     "STORE",
@@ -36,6 +35,10 @@ function decodeInstruction(instruction) {
     "INC",
     "DEC",
     "CMP",
+    "AND",
+    "OR",
+    "XOR",
+    "NOT",
     "JMP",
     "JZ",
     "JNZ",
@@ -74,11 +77,8 @@ function decodeInstruction(instruction) {
 
 
   return {
-
     opcode: opcode,
-
     operands: operands,
-
     operandTypes:
       operands.map(
         operand =>
@@ -90,11 +90,19 @@ function decodeInstruction(instruction) {
 }
 
 
-function detectOperandType(operand) {
+function detectOperandType(
+  operand
+) {
+
+  const value =
+    String(operand)
+      .trim()
+      .toUpperCase();
+
 
   if (
     ["AX", "BX"]
-      .includes(operand)
+      .includes(value)
   ) {
 
     return "REGISTER";
@@ -103,7 +111,7 @@ function detectOperandType(operand) {
 
   if (
     /^\[[0-9A-F]{1,2}H\]$/
-      .test(operand)
+      .test(value)
   ) {
 
     return "MEMORY";
@@ -112,7 +120,16 @@ function detectOperandType(operand) {
 
   if (
     /^\d+$/
-      .test(operand)
+      .test(value)
+  ) {
+
+    return "IMMEDIATE";
+  }
+
+
+  if (
+    /^0X[0-9A-F]{1,2}$/
+      .test(value)
   ) {
 
     return "IMMEDIATE";
@@ -121,14 +138,146 @@ function detectOperandType(operand) {
 
   if (
     /^[0-9A-F]{1,2}H$/
-      .test(operand)
+      .test(value)
   ) {
 
-    return "ADDRESS";
+    return "IMMEDIATE";
   }
 
 
   return "UNKNOWN";
+}
+
+
+function parseImmediateValue(
+  operand
+) {
+
+  const valueText =
+    String(operand)
+      .trim()
+      .toUpperCase();
+
+
+  let value;
+
+
+  if (
+    /^\d+$/
+      .test(valueText)
+  ) {
+
+    value =
+      parseInt(
+        valueText,
+        10
+      );
+  }
+
+  else if (
+    /^0X[0-9A-F]{1,2}$/
+      .test(valueText)
+  ) {
+
+    value =
+      parseInt(
+        valueText.substring(2),
+        16
+      );
+  }
+
+  else if (
+    /^[0-9A-F]{1,2}H$/
+      .test(valueText)
+  ) {
+
+    value =
+      parseInt(
+        valueText.slice(
+          0,
+          -1
+        ),
+        16
+      );
+  }
+
+  else {
+
+    throw new Error(
+      "Valor inmediato inválido: " +
+      operand
+    );
+  }
+
+
+  if (
+    value < 0 ||
+    value > 255
+  ) {
+
+    throw new Error(
+      "Valor inmediato fuera de 8 bits: " +
+      operand
+    );
+  }
+
+
+  return value;
+}
+
+
+function resolveOperandValue(
+  operand,
+  operandType
+) {
+
+  if (
+    operandType ===
+    "REGISTER"
+  ) {
+
+    return getRegister(
+      operand
+    );
+  }
+
+
+  if (
+    operandType ===
+    "IMMEDIATE"
+  ) {
+
+    return parseImmediateValue(
+      operand
+    );
+  }
+
+
+  throw new Error(
+    "Operando no válido: " +
+    operand
+  );
+}
+
+
+function incrementPC() {
+
+  const currentPC =
+    getRegister("PC");
+
+
+  const nextPC =
+    (currentPC + 1) &
+    0xFF;
+
+
+  setRegister(
+    "PC",
+    nextPC
+  );
+
+
+  return nextPC;
 }
 
 
@@ -162,10 +311,7 @@ function fetch() {
   );
 
 
-  setRegister(
-    "PC",
-    pc + 1
-  );
+  incrementPC();
 
 
   Logger.log(
@@ -174,11 +320,15 @@ function fetch() {
     "H"
   );
 
+
   Logger.log(
     "FETCH: MDR = " +
-    formatHexByte(memoryValue) +
+    formatHexByte(
+      memoryValue
+    ) +
     "H"
   );
+
 
   Logger.log(
     "FETCH: IR = " +
@@ -217,10 +367,7 @@ function fetchOperandByte() {
   );
 
 
-  setRegister(
-    "PC",
-    pc + 1
-  );
+  incrementPC();
 
 
   Logger.log(
@@ -228,6 +375,7 @@ function fetchOperandByte() {
     formatHexByte(pc) +
     "H"
   );
+
 
   Logger.log(
     "FETCH OPERANDO: MDR = " +
@@ -240,7 +388,9 @@ function fetchOperandByte() {
 }
 
 
-function decode(instruction) {
+function decode(
+  instruction
+) {
 
   Logger.log(
     "DECODE: Analizando instrucción " +
@@ -262,7 +412,8 @@ function decode(instruction) {
 
   for (
     let i = 0;
-    i < decoded.operands.length;
+    i <
+    decoded.operands.length;
     i++
   ) {
 
@@ -282,7 +433,9 @@ function decode(instruction) {
 }
 
 
-function parseMemoryAddress(operand) {
+function parseMemoryAddress(
+  operand
+) {
 
   if (
     !/^\[[0-9A-F]{1,2}H\]$/
@@ -310,11 +463,19 @@ function parseMemoryAddress(operand) {
 }
 
 
-function parseJumpAddress(operand) {
+function parseJumpAddress(
+  operand
+) {
+
+  const value =
+    String(operand)
+      .trim()
+      .toUpperCase();
+
 
   if (
     !/^[0-9A-F]{1,2}H$/
-      .test(operand)
+      .test(value)
   ) {
 
     throw new Error(
@@ -324,15 +485,11 @@ function parseJumpAddress(operand) {
   }
 
 
-  const hexValue =
-    operand.replace(
-      "H",
-      ""
-    );
-
-
   return parseInt(
-    hexValue,
+    value.slice(
+      0,
+      -1
+    ),
     16
   );
 }
@@ -349,18 +506,14 @@ function execute(decoded) {
   const opcode =
     decoded.opcode;
 
+
   const operands =
     decoded.operands;
 
 
-  let result =
-    null;
-
-  let destination =
-    null;
-
-  let memoryAddress =
-    null;
+  let result = null;
+  let destination = null;
+  let memoryAddress = null;
 
 
   switch (opcode) {
@@ -371,72 +524,125 @@ function execute(decoded) {
         operands[0];
 
 
-      if (
-        decoded.operandTypes[1] ===
-        "IMMEDIATE"
-      ) {
-
-        result =
-          parseInt(
-            operands[1]
-          );
-      }
-
-      else if (
-        decoded.operandTypes[1] ===
-        "REGISTER"
-      ) {
-
-        result =
-          getRegister(
-            operands[1]
-          );
-      }
-
-      else {
-
-        throw new Error(
-          "Operando inválido para MOV"
+      result =
+        resolveOperandValue(
+          operands[1],
+          decoded
+            .operandTypes[1]
         );
-      }
+
 
       break;
 
 
-    case "LOAD":
+    case "LOAD": {
 
       destination =
         operands[0];
+
 
       memoryAddress =
         parseMemoryAddress(
           operands[1]
         );
 
-      result =
+
+      setRegister(
+        "MAR",
+        memoryAddress
+      );
+
+
+      const memoryValue =
         Read(
-          memoryAddress
+          getRegister("MAR")
         );
 
+
+      setRegister(
+        "MDR",
+        memoryValue
+      );
+
+
+      result =
+        getRegister("MDR");
+
+
+      Logger.log(
+        "EXECUTE LOAD: MAR = " +
+        formatHexByte(
+          getRegister("MAR")
+        ) +
+        "H"
+      );
+
+
+      Logger.log(
+        "EXECUTE LOAD: RAM[MAR] -> MDR = " +
+        formatHexByte(
+          getRegister("MDR")
+        ) +
+        "H"
+      );
+
+
       break;
+    }
 
 
-    case "STORE":
+    case "STORE": {
 
       memoryAddress =
         parseMemoryAddress(
           operands[0]
         );
 
-      result =
+
+      setRegister(
+        "MAR",
+        memoryAddress
+      );
+
+
+      setRegister(
+        "MDR",
         getRegister(
           operands[1]
-        );
+        )
+      );
+
+
+      result =
+        getRegister("MDR");
+
 
       destination =
         "MEMORY";
 
+
+      Logger.log(
+        "EXECUTE STORE: MAR = " +
+        formatHexByte(
+          getRegister("MAR")
+        ) +
+        "H"
+      );
+
+
+      Logger.log(
+        "EXECUTE STORE: " +
+        operands[1] +
+        " -> MDR = " +
+        formatHexByte(
+          getRegister("MDR")
+        ) +
+        "H"
+      );
+
+
       break;
+    }
 
 
     case "ADD":
@@ -444,15 +650,19 @@ function execute(decoded) {
       destination =
         operands[0];
 
+
       result =
         ADD(
           getRegister(
             operands[0]
           ),
-          getRegister(
-            operands[1]
+          resolveOperandValue(
+            operands[1],
+            decoded
+              .operandTypes[1]
           )
         );
+
 
       break;
 
@@ -462,15 +672,19 @@ function execute(decoded) {
       destination =
         operands[0];
 
+
       result =
         SUB(
           getRegister(
             operands[0]
           ),
-          getRegister(
-            operands[1]
+          resolveOperandValue(
+            operands[1],
+            decoded
+              .operandTypes[1]
           )
         );
+
 
       break;
 
@@ -480,12 +694,14 @@ function execute(decoded) {
       destination =
         operands[0];
 
+
       result =
         INC(
           getRegister(
             operands[0]
           )
         );
+
 
       break;
 
@@ -495,12 +711,14 @@ function execute(decoded) {
       destination =
         operands[0];
 
+
       result =
         DEC(
           getRegister(
             operands[0]
           )
         );
+
 
       break;
 
@@ -511,23 +729,102 @@ function execute(decoded) {
         getRegister(
           operands[0]
         ),
-        getRegister(
-          operands[1]
+        resolveOperandValue(
+          operands[1],
+          decoded
+            .operandTypes[1]
         )
       );
 
-      Logger.log(
-        "EXECUTE: Comparación realizada"
-      );
 
       return {
-
         result: null,
-
         destination: null,
-
         memoryAddress: null
       };
+
+
+    case "AND":
+
+      destination =
+        operands[0];
+
+
+      result =
+        AND(
+          getRegister(
+            operands[0]
+          ),
+          resolveOperandValue(
+            operands[1],
+            decoded
+              .operandTypes[1]
+          )
+        );
+
+
+      break;
+
+
+    case "OR":
+
+      destination =
+        operands[0];
+
+
+      result =
+        OR(
+          getRegister(
+            operands[0]
+          ),
+          resolveOperandValue(
+            operands[1],
+            decoded
+              .operandTypes[1]
+          )
+        );
+
+
+      break;
+
+
+    case "XOR":
+
+      destination =
+        operands[0];
+
+
+      result =
+        XOR(
+          getRegister(
+            operands[0]
+          ),
+          resolveOperandValue(
+            operands[1],
+            decoded
+              .operandTypes[1]
+          )
+        );
+
+
+      break;
+
+
+    case "NOT":
+
+      destination =
+        operands[0];
+
+
+      result =
+        NOT(
+          getRegister(
+            operands[0]
+          )
+        );
+
+
+      break;
 
 
     case "JMP": {
@@ -537,22 +834,16 @@ function execute(decoded) {
           operands[0]
         );
 
+
       setRegister(
         "PC",
         jumpAddress
       );
 
-      Logger.log(
-        "EXECUTE: Salto a " +
-        operands[0]
-      );
 
       return {
-
         result: null,
-
         destination: null,
-
         memoryAddress: null
       };
     }
@@ -574,26 +865,12 @@ function execute(decoded) {
           "PC",
           jzAddress
         );
-
-        Logger.log(
-          "EXECUTE: JZ realizado"
-        );
-      }
-
-      else {
-
-        Logger.log(
-          "EXECUTE: JZ no realizado"
-        );
       }
 
 
       return {
-
         result: null,
-
         destination: null,
-
         memoryAddress: null
       };
     }
@@ -615,26 +892,12 @@ function execute(decoded) {
           "PC",
           jnzAddress
         );
-
-        Logger.log(
-          "EXECUTE: JNZ realizado"
-        );
-      }
-
-      else {
-
-        Logger.log(
-          "EXECUTE: JNZ no realizado"
-        );
       }
 
 
       return {
-
         result: null,
-
         destination: null,
-
         memoryAddress: null
       };
     }
@@ -642,18 +905,10 @@ function execute(decoded) {
 
     case "HLT":
 
-      Logger.log(
-        "EXECUTE: CPU detenida"
-      );
-
       return {
-
         result: null,
-
         destination: null,
-
         memoryAddress: null,
-
         halted: true
       };
 
@@ -674,17 +929,16 @@ function execute(decoded) {
 
 
   return {
-
     result: result,
-
     destination: destination,
-
     memoryAddress: memoryAddress
   };
 }
 
 
-function store(executionResult) {
+function store(
+  executionResult
+) {
 
   if (
     executionResult.destination ===
@@ -705,17 +959,21 @@ function store(executionResult) {
   ) {
 
     Write(
-      executionResult.memoryAddress,
-      executionResult.result
+      getRegister("MAR"),
+      getRegister("MDR")
     );
 
 
     Logger.log(
-      "STORE: " +
-      executionResult.result +
-      " almacenado en RAM[" +
-      executionResult.memoryAddress +
-      "]"
+      "STORE: MDR = " +
+      formatHexByte(
+        getRegister("MDR")
+      ) +
+      "H -> RAM[" +
+      formatHexByte(
+        getRegister("MAR")
+      ) +
+      "H]"
     );
 
 
@@ -730,7 +988,7 @@ function store(executionResult) {
 
 
   Logger.log(
-    "STORE: " +
+    "STORE: MDR/resultado = " +
     executionResult.result +
     " almacenado en " +
     executionResult.destination
