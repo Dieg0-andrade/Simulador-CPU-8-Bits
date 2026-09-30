@@ -20,23 +20,14 @@ function ensureProgramSheet() {
   let sheet =
     spreadsheet.getSheetByName("Programa");
 
-
   if (!sheet) {
-
     sheet =
       spreadsheet.insertSheet("Programa");
   }
 
-
-  sheet.getRange("A1")
-    .setValue("Programa");
-
-  sheet.getRange("B1")
-    .setValue("Dirección");
-
-  sheet.getRange("C1")
-    .setValue("Bytes");
-
+  sheet.getRange("A1").setValue("Programa");
+  sheet.getRange("B1").setValue("Dirección");
+  sheet.getRange("C1").setValue("Bytes");
 
   const lastRow =
     Math.max(sheet.getLastRow(), 2);
@@ -50,7 +41,6 @@ function ensureProgramSheet() {
     values.some(
       row => row[0].trim() !== ""
     );
-
 
   if (!hasProgram) {
 
@@ -68,7 +58,6 @@ function ensureProgramSheet() {
       .setValues(program);
   }
 
-
   return sheet;
 }
 
@@ -80,15 +69,16 @@ function parseByteLiteral(text, lineNumber) {
       .trim()
       .toUpperCase();
 
-
   let value;
 
 
   if (/^\d+$/.test(valueText)) {
 
     value =
-      parseInt(valueText, 10);
-
+      parseInt(
+        valueText,
+        10
+      );
   }
 
   else if (
@@ -100,7 +90,6 @@ function parseByteLiteral(text, lineNumber) {
         valueText.substring(2),
         16
       );
-
   }
 
   else if (
@@ -112,7 +101,6 @@ function parseByteLiteral(text, lineNumber) {
         valueText.slice(0, -1),
         16
       );
-
   }
 
   else {
@@ -138,18 +126,19 @@ function parseByteLiteral(text, lineNumber) {
     );
   }
 
-
   return value;
 }
 
 
-function parseMemoryLiteral(text, lineNumber) {
+function parseMemoryLiteral(
+  text,
+  lineNumber
+) {
 
   const valueText =
     String(text)
       .trim()
       .toUpperCase();
-
 
   if (
     !valueText.startsWith("[") ||
@@ -163,13 +152,11 @@ function parseMemoryLiteral(text, lineNumber) {
     );
   }
 
-
   const inner =
     valueText.substring(
       1,
       valueText.length - 1
     );
-
 
   return parseByteLiteral(
     inner,
@@ -195,7 +182,9 @@ function requireOperandCount(
   lineNumber
 ) {
 
-  if (operands.length !== expected) {
+  if (
+    operands.length !== expected
+  ) {
 
     throw new Error(
       "Línea " +
@@ -236,15 +225,15 @@ function analyzeAssemblyForm(
         lineNumber
       );
 
-
       const destination =
         operands[0];
 
       const source =
         operands[1];
 
-
-      if (!isCPURegister(destination)) {
+      if (
+        !isCPURegister(destination)
+      ) {
 
         throw new Error(
           "Línea " +
@@ -253,8 +242,20 @@ function analyzeAssemblyForm(
         );
       }
 
+      if (
+        isCPURegister(source)
+      ) {
 
-      if (isCPURegister(source)) {
+        if (
+          destination === source
+        ) {
+
+          throw new Error(
+            "Línea " +
+            lineNumber +
+            ": operación entre el mismo registro no está codificada"
+          );
+        }
 
         return {
           form:
@@ -266,16 +267,13 @@ function analyzeAssemblyForm(
         };
       }
 
-
       const immediate =
         parseByteLiteral(
           source,
           lineNumber
         );
 
-
       return {
-
         form:
           destination === "AX"
             ? "AX_IMM"
@@ -294,11 +292,12 @@ function analyzeAssemblyForm(
         lineNumber
       );
 
-
       const destination =
         operands[0];
 
-      if (!isCPURegister(destination)) {
+      if (
+        !isCPURegister(destination)
+      ) {
 
         throw new Error(
           "Línea " +
@@ -307,16 +306,13 @@ function analyzeAssemblyForm(
         );
       }
 
-
       const address =
         parseMemoryLiteral(
           operands[1],
           lineNumber
         );
 
-
       return {
-
         form:
           destination === "AX"
             ? "AX_MEM"
@@ -335,19 +331,18 @@ function analyzeAssemblyForm(
         lineNumber
       );
 
-
       const address =
         parseMemoryLiteral(
           operands[0],
           lineNumber
         );
 
-
       const source =
         operands[1];
 
-
-      if (!isCPURegister(source)) {
+      if (
+        !isCPURegister(source)
+      ) {
 
         throw new Error(
           "Línea " +
@@ -356,9 +351,7 @@ function analyzeAssemblyForm(
         );
       }
 
-
       return {
-
         form:
           source === "AX"
             ? "MEM_AX"
@@ -371,7 +364,10 @@ function analyzeAssemblyForm(
 
     case "ADD":
     case "SUB":
-    case "CMP": {
+    case "CMP":
+    case "AND":
+    case "OR":
+    case "XOR": {
 
       requireOperandCount(
         operands,
@@ -379,41 +375,68 @@ function analyzeAssemblyForm(
         lineNumber
       );
 
-
       const destination =
         operands[0];
 
       const source =
         operands[1];
 
-
       if (
-        !isCPURegister(destination) ||
-        !isCPURegister(source)
+        !isCPURegister(destination)
       ) {
 
         throw new Error(
           "Línea " +
           lineNumber +
-          ": esta forma requiere dos registros"
+          ": registro destino inválido"
         );
       }
 
+      if (
+        isCPURegister(source)
+      ) {
+
+        if (
+          destination === source
+        ) {
+
+          throw new Error(
+            "Línea " +
+            lineNumber +
+            ": operación entre el mismo registro no está codificada"
+          );
+        }
+
+        return {
+          form:
+            destination === "AX"
+              ? "AX_BX"
+              : "BX_AX",
+
+          operandByte: null
+        };
+      }
+
+      const immediate =
+        parseByteLiteral(
+          source,
+          lineNumber
+        );
 
       return {
-
         form:
           destination === "AX"
-            ? "AX_BX"
-            : "BX_AX",
+            ? "AX_IMM"
+            : "BX_IMM",
 
-        operandByte: null
+        operandByte: immediate
       };
     }
 
 
     case "INC":
-    case "DEC": {
+    case "DEC":
+    case "NOT": {
 
       requireOperandCount(
         operands,
@@ -421,12 +444,12 @@ function analyzeAssemblyForm(
         lineNumber
       );
 
-
       const register =
         operands[0];
 
-
-      if (!isCPURegister(register)) {
+      if (
+        !isCPURegister(register)
+      ) {
 
         throw new Error(
           "Línea " +
@@ -435,9 +458,7 @@ function analyzeAssemblyForm(
         );
       }
 
-
       return {
-
         form:
           register === "AX"
             ? "AX"
@@ -458,18 +479,14 @@ function analyzeAssemblyForm(
         lineNumber
       );
 
-
       const address =
         parseByteLiteral(
           operands[0],
           lineNumber
         );
 
-
       return {
-
         form: "ADDR",
-
         operandByte: address
       };
     }
@@ -497,28 +514,28 @@ function assembleInstruction(
       .trim()
       .toUpperCase();
 
-
-  if (cleanLine === "") {
+  if (
+    cleanLine === ""
+  ) {
     return null;
   }
 
-
   const firstSpace =
     cleanLine.indexOf(" ");
-
 
   let mnemonic;
   let operandsText;
 
 
-  if (firstSpace === -1) {
+  if (
+    firstSpace === -1
+  ) {
 
     mnemonic =
       cleanLine;
 
     operandsText =
       "";
-
   }
 
   else {
@@ -577,7 +594,9 @@ function assembleInstruction(
   ];
 
 
-  if (definition.bytes === 2) {
+  if (
+    definition.bytes === 2
+  ) {
 
     bytes.push(
       analyzed.operandByte
@@ -586,11 +605,8 @@ function assembleInstruction(
 
 
   return {
-
     text: cleanLine,
-
     bytes: bytes,
-
     definition: definition
   };
 }
@@ -601,10 +617,8 @@ function assembleProgramFromSheet() {
   const sheet =
     ensureProgramSheet();
 
-
   const lastRow =
     sheet.getLastRow();
-
 
   const source =
     sheet
@@ -616,9 +630,7 @@ function assembleProgramFromSheet() {
       )
       .getDisplayValues();
 
-
   const programBytes = [];
-
   const instructions = [];
 
   let address = 0;
@@ -633,22 +645,20 @@ function assembleProgramFromSheet() {
     const sourceLine =
       source[i][0].trim();
 
-
-    if (sourceLine === "") {
+    if (
+      sourceLine === ""
+    ) {
       continue;
     }
 
-
     const rowNumber =
       i + 2;
-
 
     const assembled =
       assembleInstruction(
         sourceLine,
         rowNumber
       );
-
 
     if (
       address +
@@ -661,18 +671,12 @@ function assembleProgramFromSheet() {
       );
     }
 
-
     instructions.push({
-
       address: address,
-
       sourceRow: rowNumber,
-
       text: assembled.text,
-
       bytes: assembled.bytes
     });
-
 
     for (
       let j = 0;
@@ -689,7 +693,9 @@ function assembleProgramFromSheet() {
   }
 
 
-  if (programBytes.length === 0) {
+  if (
+    programBytes.length === 0
+  ) {
 
     throw new Error(
       "La hoja Programa está vacía"
@@ -721,7 +727,6 @@ function assembleProgramFromSheet() {
           ) + "H"
         );
 
-
       sheet
         .getRange(
           instruction.sourceRow,
@@ -737,9 +742,7 @@ function assembleProgramFromSheet() {
 
 
   return {
-
     bytes: programBytes,
-
     instructions: instructions
   };
 }
@@ -748,7 +751,6 @@ function assembleProgramFromSheet() {
 function loadProgramIntoRAM(assembly) {
 
   clearRAM();
-
 
   for (
     let address = 0;
@@ -762,7 +764,6 @@ function loadProgramIntoRAM(assembly) {
     );
   }
 
-
   PropertiesService
     .getScriptProperties()
     .setProperty(
@@ -771,7 +772,6 @@ function loadProgramIntoRAM(assembly) {
         assembly.bytes.length
       )
     );
-
 
   refreshRAMMnemonicsFromMemory();
 }
@@ -784,11 +784,9 @@ function refreshRAMMnemonicsFromMemory() {
       .getActiveSpreadsheet()
       .getSheetByName("RAM");
 
-
   if (!sheet) {
     return;
   }
-
 
   const programLength =
     Number(
@@ -799,21 +797,19 @@ function refreshRAMMnemonicsFromMemory() {
         ) || 0
     );
 
-
   sheet
     .getRange("E1")
     .setValue("Mnemónico");
 
-
   const output =
-    Array
-      .from(
-        { length: 128 },
-        () => [""]
-      );
+    Array.from(
+      { length: 128 },
+      () => [""]
+    );
 
-
-  if (programLength === 0) {
+  if (
+    programLength === 0
+  ) {
 
     sheet
       .getRange(
@@ -856,12 +852,10 @@ function refreshRAMMnemonicsFromMemory() {
     const opcode =
       values[address];
 
-
     const definition =
       getInstructionDefinitionByOpcodeOrNull(
         opcode
       );
-
 
     if (!definition) {
 
@@ -874,10 +868,8 @@ function refreshRAMMnemonicsFromMemory() {
       continue;
     }
 
-
     let operandByte =
       null;
-
 
     if (
       definition.bytes === 2
@@ -894,11 +886,9 @@ function refreshRAMMnemonicsFromMemory() {
         break;
       }
 
-
       operandByte =
         values[address + 1];
     }
-
 
     const decoded =
       decodeInstructionBytes(
@@ -906,10 +896,8 @@ function refreshRAMMnemonicsFromMemory() {
         operandByte
       );
 
-
     output[address][0] =
       decoded.text;
-
 
     if (
       definition.bytes === 2
@@ -922,7 +910,6 @@ function refreshRAMMnemonicsFromMemory() {
         ) +
         "H";
     }
-
 
     address +=
       definition.bytes;
@@ -942,18 +929,18 @@ function refreshRAMMnemonicsFromMemory() {
 
 function onEdit(e) {
 
-  if (!e || !e.range) {
+  if (
+    !e ||
+    !e.range
+  ) {
     return;
   }
-
 
   const range =
     e.range;
 
-
   const sheet =
     range.getSheet();
-
 
   if (
     sheet.getName() === "RAM" &&
